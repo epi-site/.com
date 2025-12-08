@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            border: 3px solid #00ff88;
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.3);
+        }
+        
+        .header h1 {
+            color: #ffd700;
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+            letter-spacing: 1px;
+        }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1em;
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.6);
+        }
+        
+        .leaderboard-item {
+            background: rgba(255, 255, 255, 0.08);
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+        
+        .leaderboard-item:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateX(5px);
+        }
+        
+        /* ANIMASI RGB KHUSUS UNTUK RANK 1 */
+        .leaderboard-item.first {
+            animation: rgbBorder 3s infinite linear;
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 0, 0.1), 
+                rgba(0, 255, 0, 0.1), 
+                rgba(0, 0, 255, 0.1));
+            border: 3px solid transparent;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .leaderboard-item.first::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, 
+                #ff0000, #ff8000, #ffff00, #80ff00, 
+                #00ff80, #00ffff, #0080ff, #8000ff);
+            border-radius: 18px;
+            z-index: -1;
+            animation: rgbRotate 3s infinite linear;
+            filter: blur(5px);
+            opacity: 0.7;
+        }
+        
+        .leaderboard-item.first::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 0, 0.05), 
+                rgba(0, 255, 0, 0.05), 
+                rgba(0, 0, 255, 0.05));
+            border-radius: 12px;
+            z-index: -1;
+        }
+        
+        @keyframes rgbBorder {
+            0%, 100% { 
+                border-color: #ff0000;
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.5),
+                            inset 0 0 20px rgba(255, 0, 0, 0.1);
+            }
+            33% { 
+                border-color: #00ff00;
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5),
+                            inset 0 0 20px rgba(0, 255, 0, 0.1);
+            }
+            66% { 
+                border-color: #0000ff;
+                box-shadow: 0 0 20px rgba(0, 0, 255, 0.5),
+                            inset 0 0 20px rgba(0, 0, 255, 0.1);
+            }
+        }
+        
+        @keyframes rgbRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .leaderboard-item.second {
+            border-left: 5px solid #c0c0c0;
+            background: rgba(192, 192, 192, 0.15);
+        }
+        
+        .leaderboard-item.third {
+            border-left: 5px solid #cd7f32;
+            background: rgba(205, 127, 50, 0.15);
+        }
+        
+        /* NOMOR RANK */
+        .rank-number {
+            font-size: 2em;
+            font-weight: bold;
+            width: 70px;
+            text-align: center;
+            color: #888;
+            position: relative;
+        }
+        
+        .first .rank-number {
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            font-size: 2.5em;
+            animation: goldGlow 2s infinite alternate;
+        }
+        
+        @keyframes goldGlow {
+            0% { 
+                color: #ffd700;
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            }
+            100% { 
+                color: #fff;
+                text-shadow: 0 0 15px rgba(255, 215, 0, 0.9),
+                           0 0 20px rgba(255, 215, 0, 0.7);
+            }
+        }
+        
+        .second .rank-number {
+            color: #c0c0c0;
+        }
+        
+        .third .rank-number {
+            color: #cd7f32;
+        }
+        
+        .player-info {
+            flex: 1;
+            padding-left: 20px;
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .player-name {
+            font-weight: bold;
+            color: white;
+            margin-bottom: 8px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .current-user .player-name {
+            color: #00ff88;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+        
+        .player-rank {
+            color: #ffd700;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .player-stars {
+            color: #88ffcc;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* EMOJI KING UNTUK RANK 1 */
+        .king-crown {
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            font-size: 3em;
+            animation: crownFloat 3s infinite ease-in-out;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.7));
+            z-index: 2;
+        }
+        
+        @keyframes crownFloat {
+            0%, 100% { 
+                transform: translateY(0) rotate(0deg) scale(1);
+            }
+            25% { 
+                transform: translateY(-10px) rotate(5deg) scale(1.1);
+            }
+            50% { 
+                transform: translateY(-5px) rotate(-5deg) scale(1.05);
+            }
+            75% { 
+                transform: translateY(-10px) rotate(5deg) scale(1.1);
+            }
+        }
+        
+        /* STAR ANIMATION */
+        .star-emoji {
+            display: inline-block;
+            animation: starTwinkle 2s infinite;
+        }
+        
+        @keyframes starTwinkle {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #00ff88;
+            font-size: 1.2em;
+        }
+        
+        /* CONFETTI EFFECT FOR RANK 1 */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            border-radius: 50%;
+            opacity: 0;
+        }
+        
+        .first .confetti:nth-child(1) {
+            top: 10px;
+            left: 10px;
+            animation: confettiFall 3s infinite 0.5s;
+        }
+        
+        .first .confetti:nth-child(2) {
+            top: 10px;
+            right: 10px;
+            animation: confettiFall 3s infinite 1s;
+        }
+        
+        .first .confetti:nth-child(3) {
+            bottom: 10px;
+            left: 10px;
+            animation: confettiFall 3s infinite 1.5s;
+        }
+        
+        .first .confetti:nth-child(4) {
+            bottom: 10px;
+            right: 10px;
+            animation: confettiFall 3s infinite 2s;
+        }
+        
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-20px) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .leaderboard-item {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .rank-number {
+                width: 50px;
+                font-size: 1.8em;
+            }
+            
+            .first .rank-number {
+                font-size: 2em;
+            }
+            
+            .king-crown {
+                font-size: 2.5em;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LEADERBOARD</h1>
+            <button class="back-btn" onclick="window.location.href='index.html'">← Kembali</button>
+        </div>
+        
+        <div id="leaderboardList">
+            <div class="loading">Memuat...</div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlMyO9iybb7Zc3-JWpaJTOU6mp7dVZw7A",
+            authDomain: "taher-online.firebaseapp.com",
+            databaseURL: "https://taher-online-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "taher-online",
+            storageBucket: "taher-online.firebasestorage.app",
+            messagingSenderId: "254196950669",
+            appId: "1:254196950669:web:ea7dc25e29e459e791e4c4",
+            measurementId: "G-W288VV18S2"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        let currentUser = null;
+        
+        // Rank system
+        const ranks = [
+            "🥉 Beginner",      // 0
+            "🥈 Junior",        // 1
+            "🥇 Senior",        // 2
+            "🏅 Great",         // 3
+            "🎖️ Super Great",   // 4
+            "🏆 Legend",        // 5
+            "👑 Kings",         // 6
+            "☢️ Greatest",      // 7
+            "☣️ Mad King",      // 8
+            "🔱 Greatness",     // 9
+            "⚜️ Unbeatable",    // 10
+            "🏴‍☠️ Monster Kings", // 11
+            "亗⚛️ Impossible ⚛️亗"     // 12
+        ];
+        
+        // Load current user
+        function loadCurrentUser() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+            }
+        }
+        
+        // Fungsi sorting berdasarkan rank tertinggi
+        function sortByHighestRank(players) {
+            return players.sort((a, b) => {
+                if (b.rank !== a.rank) {
+                    return b.rank - a.rank;
+                }
+                return b.stars - a.stars;
+            });
+        }
+        
+        // Beri hadiah untuk rank 1 (TIDAK DITAMPILKAN KE USER)
+        async function giveRewardToFirstPlace(topPlayer) {
+            try {
+                const today = new Date().toDateString();
+                const lastRewardDate = await database.ref('lastRewardDate').once('value');
+                
+                if (lastRewardDate.val() === today) {
+                    return false;
+                }
+                
+                // Beri 1000 diamond ke rank 1 (DIBELAKANG LAYAR)
+                const currentDiamond = topPlayer.diamond || 0;
+                await database.ref('users/' + topPlayer.uid).update({
+                    diamond: currentDiamond + 1000
+                });
+                
+                // Update tanggal pemberian hadiah terakhir
+                await database.ref('lastRewardDate').set(today);
+                
+                return true;
+                
+            } catch (error) {
+                console.error("Error memberi hadiah:", error);
+                return false;
+            }
+        }
+        
+        // Load dan tampilkan leaderboard
+        async function loadLeaderboard() {
+            try {
+                const snapshot = await database.ref('users').once('value');
+                const users = snapshot.val();
+                
+                let players = [];
+                for (const uid in users) {
+                    if (users[uid]) {
+                        players.push({
+                            uid: uid,
+                            ...users[uid]
+                        });
+                    }
+                }
+                
+                players = sortByHighestRank(players);
+                
+                // Beri hadiah ke rank 1 (TANPA NOTIFIKASI)
+                if (players.length > 0) {
+                    await giveRewardToFirstPlace(players[0]);
+                }
+                
+                displayLeaderboard(players);
+                setupRealTimeListener();
+                
+            } catch (error) {
+                document.getElementById('leaderboardList').innerHTML = 
+                    '<div class="loading">Error memuat leaderboard</div>';
+            }
+        }
+        
+        // Tampilkan leaderboard dengan animasi keren
+        function displayLeaderboard(players) {
+            const leaderboardList = document.getElementById('leaderboardList');
+            
+            if (players.length === 0) {
+                leaderboardList.innerHTML = '<div class="loading">Belum ada pemain</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            players.forEach((player, index) => {
+                const rank = index + 1;
+                const rankClass = rank === 1 ? 'first' : rank === 2 ? 'second' : rank === 3 ? 'third' : '';
+                const isCurrentUser = currentUser && player.uid === currentUser.uid;
+                const rankName = ranks[player.rank || 0] || ranks[0];
+                const stars = player.stars || 0;
+                
+                html += `
+                    <div class="leaderboard-item ${rankClass} ${isCurrentUser ? 'current-user' : ''}">
+                        ${rank === 1 ? '<div class="king-crown">👑</div>' : ''}
+                        ${rank === 1 ? '<div class="confetti"></div><div class="confetti"></div><div class="confetti"></div><div class="confetti"></div>' : ''}
+                        
+                        <div class="rank-number">#${rank}</div>
+                        
+                        <div class="player-info">
+                            <div class="player-name">
+                                ${player.username}
+                                ${isCurrentUser ? '<span style="color:#00ff88; font-size:0.8em;">(Anda)</span>' : ''}
+                            </div>
+                            <div class="player-rank">${rankName}</div>
+                            <div class="player-stars">
+                                <span class="star-emoji">⭐</span> ${stars} stars
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            leaderboardList.innerHTML = html;
+            
+            // Tambah efek tambahan untuk rank 1
+            if (players.length > 0) {
+                setTimeout(() => {
+                    const firstItem = document.querySelector('.leaderboard-item.first');
+                    if (firstItem) {
+                        // Tambah efek kilat RGB
+                        const rgbOverlay = document.createElement('div');
+                        rgbOverlay.style.cssText = `
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background: linear-gradient(45deg, 
+                                transparent 45%, 
+                                rgba(255, 0, 0, 0.1) 50%, 
+                                transparent 55%);
+                            z-index: 0;
+                            pointer-events: none;
+                            animation: rgbFlash 3s infinite linear;
+                        `;
+                        firstItem.appendChild(rgbOverlay);
+                        
+                        // Tambah style untuk animasi flash
+                        if (!document.getElementById('rgb-styles')) {
+                            const style = document.createElement('style');
+                            style.id = 'rgb-styles';
+                            style.textContent = `
+                                @keyframes rgbFlash {
+                                    0% { background-position: -100% 0; }
+                                    100% { background-position: 200% 0; }
+                                }
+                            `;
+                            document.head.appendChild(style);
+                        }
+                    }
+                }, 100);
+            }
+        }
+        
+        // Setup real-time listener
+        function setupRealTimeListener() {
+            database.ref('users').on('value', (snapshot) => {
+                const users = snapshot.val();
+                
+                let players = [];
+                for (const uid in users) {
+                    if (users[uid]) {
+                        players.push({
+                            uid: uid,
+                            ...users[uid]
+                        });
+                    }
+                }
+                
+                players = sortByHighestRank(players);
+                displayLeaderboard(players);
+            });
+        }
+        
+        // Initialize
+        window.onload = () => {
+            loadCurrentUser();
+            loadLeaderboard();
+        };
+    </script>
+</body>
+</html>
