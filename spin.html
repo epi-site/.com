@@ -631,11 +631,11 @@
             { value: 10, name: "10 Diamond", color: "#ff9999", chance: 20 },
             { value: 1000000, name: "🔥🎁MISTERI🎁🔥", color: "#99ccff", chance: 1 },
             { value: 50, name: "50 Diamond", color: "#99ff99", chance: 40 },
-            { value: 100, name: "100 Diamond", color: "#ffff99", chance: 50 },
+            { value: 100, name: "100 Diamond", color: "#ffff99", chance: 45 },
             { value: 250, name: "250 Diamond", color: "#ffcc99", chance: 15 },
             { value: 500, name: "500 Diamond", color: "#cc99ff", chance: 15 },
             { value: 1000, name: "JACKPOT!", color: "#99ffff", chance: 50 },
-            { value: 2000, name: "JACKPOT!", color: "#ff6666", chance: 45 }, // Jackpot 20%
+            { value: 2000, name: "JACKPOT!", color: "#ff6666", chance: 35 }, // Jackpot 20%
             { value: 0, name: "Coba Lagi", color: "#cccccc", chance: 0 } // Coba lagi dihapus
         ];
         
@@ -898,7 +898,7 @@
             spinBtn.innerHTML = '<span>🌀</span> MEMUTAR...';
             
             // Pilih hadiah acak berdasarkan chance
-            const random = Math.random() * 100;
+            const random = Math.random() * 200;
             let cumulative = 0;
             let selectedPrize = null;
             
