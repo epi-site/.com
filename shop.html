@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - The All Game</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            border: 3px solid #00ff88;
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.3);
+            position: relative;
+        }
+        
+        .header h1 {
+            color: #ffd700;
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+        }
+        
+        .user-balance {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 15px auto;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2em;
+        }
+        
+        .balance-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .diamond-count {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 1.3em;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1em;
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+            margin-top: 10px;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.6);
+        }
+        
+        .shop-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .shop-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .shop-item:hover {
+            transform: translateY(-10px);
+            border-color: #00ff88;
+            box-shadow: 0 15px 30px rgba(0, 255, 136, 0.2);
+        }
+        
+        .item-icon {
+            font-size: 4em;
+            text-align: center;
+            margin-bottom: 20px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .item-title {
+            color: #00ff88;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .item-description {
+            color: #88ffcc;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            text-align: center;
+            min-height: 60px;
+        }
+        
+        .item-price {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .price-amount {
+            color: #ffd700;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .buy-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .buy-btn.available {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
+        }
+        
+        .buy-btn.available:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.5);
+        }
+        
+        .buy-btn.not-available {
+            background: linear-gradient(135deg, #666, #333);
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        .buy-btn.owned {
+            background: linear-gradient(135deg, #9370db, #663399);
+            color: white;
+            cursor: default;
+        }
+        
+        .owned-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #00ff88;
+            color: #1a1a2e;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .limited-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #ff0000, #ff4500);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            animation: pulse 2s infinite;
+        }
+        
+        .time-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #00ffff, #0088ff);
+            color: #1a1a2e;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .inventory-section {
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        .inventory-section h2 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.8em;
+        }
+        
+        .inventory-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .inventory-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            width: 200px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .inventory-item:hover {
+            border-color: #00ff88;
+            transform: translateY(-5px);
+        }
+        
+        .inventory-item.using {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .use-btn {
+            margin-top: 10px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 10px;
+            background: #00ff88;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .use-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .use-btn.using {
+            background: #ffd700;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #00ff88;
+            font-size: 1.2em;
+        }
+        
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .message.success {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
+        }
+        
+        .message.error {
+            background: linear-gradient(135deg, #ff3333, #cc0000);
+        }
+        
+        .message.info {
+            background: linear-gradient(135deg, #0088ff, #0066cc);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .expired-badge {
+            background: linear-gradient(135deg, #ff3333, #cc0000);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .shop-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .user-balance {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 GAME SHOP</h1>
+            
+            <div class="user-balance" id="userBalance">
+                <div class="balance-item">
+                    <span>💎 Diamond:</span>
+                    <span class="diamond-count" id="diamondCount">0</span>
+                </div>
+                <div class="balance-item">
+                    <span>💵 Uang:</span>
+                    <span class="diamond-count" id="moneyCount">0</span>
+                </div>
+            </div>
+            
+            <button class="back-btn" onclick="window.location.href='index.html'">← Kembali ke Lobby</button>
+        </div>
+        
+        <div class="shop-container">
+            <!-- ITEM 1: BORDER METALIK -->
+            <div class="shop-item" id="metallicBorderItem">
+                <div class="limited-badge">LIMITED</div>
+                <div class="item-icon">✨</div>
+                <div class="item-title">Border Metalik</div>
+                <div class="item-description">
+                    Border khusus untuk tampilan di leaderboard. 
+                    Memberikan efek metalik yang mewah walaupun bukan rank 1!
+                </div>
+                <div class="item-price">
+                    <div class="price-amount">
+                        <span>💎</span>
+                        <span id="metallicBorderPrice">10,000 Diamond</span>
+                    </div>
+                </div>
+                <button class="buy-btn not-available" id="buyMetallicBorder">
+                    <span>🔒</span>
+                    <span>BELI</span>
+                </button>
+            </div>
+            
+            <!-- ITEM 2: CARD LIMITED -->
+            <div class="shop-item" id="limitedCardItem">
+                <div class="limited-badge">SUPER RARE</div>
+                <div class="item-icon">💳</div>
+                <div class="item-title">Card Limited</div>
+                <div class="item-description">
+                    Kartu khusus yang memberikan akses unlimited selama 5 hari!
+                    Bisa beli semua item di shop tanpa batas selama masa aktif.
+                </div>
+                <div class="item-price">
+                    <div class="price-amount">
+                        <span>💎</span>
+                        <span>10,000 Diamond</span>
+                    </div>
+                </div>
+                <button class="buy-btn not-available" id="buyLimitedCard">
+                    <span>🔒</span>
+                    <span>BELI</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- INVENTORY SECTION -->
+        <div class="inventory-section" id="inventorySection" style="display: none;">
+            <h2>🎒 INVENTORY SAYA</h2>
+            <div class="inventory-items" id="inventoryItems">
+                <!-- Items akan dimuat di sini -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlMyO9iybb7Zc3-JWpaJTOU6mp7dVZw7A",
+            authDomain: "taher-online.firebaseapp.com",
+            databaseURL: "https://taher-online-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "taher-online",
+            storageBucket: "taher-online.firebasestorage.app",
+            messagingSenderId: "254196950669",
+            appId: "1:254196950669:web:ea7dc25e29e459e791e4c4",
+            measurementId: "G-W288VV18S2"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        let currentUser = null;
+        let userItems = {};
+        let cardLimitedActive = false;
+        let cardLimitedExpiry = null;
+        
+        // Show message function
+        function showMessage(text, type = 'success') {
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                message.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    message.remove();
+                }, 300);
+            }, 3000);
+        }
+        
+        // Load current user
+        function loadCurrentUser() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateBalanceDisplay();
+                checkOwnedItems();
+                loadInventory();
+            } else {
+                showMessage('Silakan login terlebih dahulu!', 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            }
+        }
+        
+        // Update balance display
+        function updateBalanceDisplay() {
+            if (!currentUser) return;
+            
+            document.getElementById('diamondCount').textContent = currentUser.diamond || 0;
+            document.getElementById('moneyCount').textContent = (currentUser.money || 0).toLocaleString();
+        }
+        
+        // Check owned items
+        async function checkOwnedItems() {
+            if (!currentUser) return;
+            
+            try {
+                const snapshot = await database.ref('userItems/' + currentUser.uid).once('value');
+                userItems = snapshot.val() || {};
+                
+                // Cek status Card Limited
+                checkCardLimitedStatus();
+                updateBuyButtons();
+                
+            } catch (error) {
+                console.error('Error loading items:', error);
+            }
+        }
+        
+        // Check Card Limited status
+        function checkCardLimitedStatus() {
+            const cardData = userItems.limited_card;
+            
+            if (cardData && cardData.purchaseTime) {
+                const purchaseTime = cardData.purchaseTime;
+                const currentTime = Date.now();
+                const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000; // 5 hari dalam milidetik
+                
+                // Cek apakah masih dalam 5 hari
+                if ((currentTime - purchaseTime) < fiveDaysInMs) {
+                    cardLimitedActive = true;
+                    cardLimitedExpiry = new Date(purchaseTime + fiveDaysInMs);
+                } else {
+                    cardLimitedActive = false;
+                    cardLimitedExpiry = null;
+                    
+                    // Hapus card limited dari inventory jika sudah expired
+                    database.ref('userItems/' + currentUser.uid + '/limited_card').remove();
+                    delete userItems.limited_card;
+                }
+            } else {
+                cardLimitedActive = false;
+                cardLimitedExpiry = null;
+            }
+        }
+        
+        // Update buy buttons based on ownership and balance
+        function updateBuyButtons() {
+            const diamondBalance = currentUser.diamond || 0;
+            
+            // Metallic Border
+            const hasBorder = userItems.metallic_border === true;
+            const borderBtn = document.getElementById('buyMetallicBorder');
+            const borderItem = document.getElementById('metallicBorderItem');
+            const borderPrice = document.getElementById('metallicBorderPrice');
+            
+            if (hasBorder) {
+                borderBtn.className = 'buy-btn owned';
+                borderBtn.innerHTML = '<span>✓</span> <span>SUDAH DIMILIKI</span>';
+                borderBtn.disabled = true;
+                
+                // Add owned badge
+                if (!borderItem.querySelector('.owned-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'owned-badge';
+                    badge.textContent = 'DIMILIKI';
+                    borderItem.appendChild(badge);
+                }
+            } else if (cardLimitedActive || diamondBalance >= 10000) {
+                // Jika card limited aktif atau diamond cukup
+                borderBtn.className = 'buy-btn available';
+                borderBtn.innerHTML = '<span>🛒</span> <span>BELI SEKARANG</span>';
+                borderBtn.disabled = false;
+                
+                // Update harga jika card limited aktif
+                if (cardLimitedActive) {
+                    borderPrice.textContent = 'GRATIS (Card Limited)';
+                    borderPrice.style.color = '#00ff88';
+                } else {
+                    borderPrice.textContent = '10,000 Diamond';
+                    borderPrice.style.color = '#ffd700';
+                }
+                
+                borderBtn.onclick = () => buyItem('metallic_border', 10000);
+            } else {
+                borderBtn.className = 'buy-btn not-available';
+                borderBtn.innerHTML = '<span>🔒</span> <span>DIAMOND TIDAK CUKUP</span>';
+                borderBtn.disabled = true;
+            }
+            
+            // Limited Card
+            const cardData = userItems.limited_card;
+            const hasCard = cardData && cardData.purchaseTime;
+            const cardBtn = document.getElementById('buyLimitedCard');
+            const cardItem = document.getElementById('limitedCardItem');
+            
+            // Cek apakah card sudah kadaluarsa
+            if (hasCard) {
+                const purchaseTime = cardData.purchaseTime;
+                const currentTime = Date.now();
+                const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+                
+                if ((currentTime - purchaseTime) < fiveDaysInMs) {
+                    // Card masih aktif
+                    cardBtn.className = 'buy-btn owned';
+                    cardBtn.innerHTML = '<span>✓</span> <span>SUDAH DIMILIKI</span>';
+                    cardBtn.disabled = true;
+                    
+                    // Hitung sisa waktu
+                    const remainingTime = fiveDaysInMs - (currentTime - purchaseTime);
+                    const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
+                    
+                    // Add time badge
+                    if (!cardItem.querySelector('.time-badge')) {
+                        const timeBadge = document.createElement('div');
+                        timeBadge.className = 'time-badge';
+                        timeBadge.textContent = `${remainingDays} HARI LAGI`;
+                        cardItem.appendChild(timeBadge);
+                    } else {
+                        cardItem.querySelector('.time-badge').textContent = `${remainingDays} HARI LAGI`;
+                    }
+                } else {
+                    // Card sudah kadaluarsa, bisa beli lagi
+                    if (diamondBalance >= 10000) {
+                        cardBtn.className = 'buy-btn available';
+                        cardBtn.innerHTML = '<span>🛒</span> <span>BELI LAGI</span>';
+                        cardBtn.disabled = false;
+                        cardBtn.onclick = () => buyItem('limited_card', 10000);
+                    } else {
+                        cardBtn.className = 'buy-btn not-available';
+                        cardBtn.innerHTML = '<span>🔒</span> <span>DIAMOND TIDAK CUKUP</span>';
+                        cardBtn.disabled = true;
+                    }
+                    
+                    // Hapus time badge jika ada
+                    const timeBadge = cardItem.querySelector('.time-badge');
+                    if (timeBadge) timeBadge.remove();
+                }
+            } else if (diamondBalance >= 10000) {
+                cardBtn.className = 'buy-btn available';
+                cardBtn.innerHTML = '<span>🛒</span> <span>BELI SEKARANG</span>';
+                cardBtn.disabled = false;
+                cardBtn.onclick = () => buyItem('limited_card', 10000);
+                
+                // Hapus time badge jika ada
+                const timeBadge = cardItem.querySelector('.time-badge');
+                if (timeBadge) timeBadge.remove();
+            } else {
+                cardBtn.className = 'buy-btn not-available';
+                cardBtn.innerHTML = '<span>🔒</span> <span>DIAMOND TIDAK CUKUP</span>';
+                cardBtn.disabled = true;
+            }
+        }
+        
+        // Buy item function
+        async function buyItem(itemId, price) {
+            if (!currentUser) return;
+            
+            // Jika item ini bukan limited_card dan card limited aktif, maka gratis
+            const isFree = (itemId !== 'limited_card' && cardLimitedActive);
+            
+            if (!isFree && currentUser.diamond < price) {
+                showMessage('Diamond tidak cukup!', 'error');
+                return;
+            }
+            
+            try {
+                // Jika bukan gratis, kurangi diamond
+                if (!isFree) {
+                    const newDiamond = currentUser.diamond - price;
+                    await database.ref('users/' + currentUser.uid).update({
+                        diamond: newDiamond
+                    });
+                    currentUser.diamond = newDiamond;
+                }
+                
+                // Tambahkan item ke inventory user
+                if (itemId === 'limited_card') {
+                    // Untuk limited card, simpan waktu pembelian
+                    await database.ref('userItems/' + currentUser.uid + '/' + itemId).set({
+                        purchaseTime: Date.now()
+                    });
+                } else {
+                    await database.ref('userItems/' + currentUser.uid + '/' + itemId).set(true);
+                }
+                
+                // Catat riwayat pembelian
+                await database.ref('purchases/' + currentUser.uid).push({
+                    itemId: itemId,
+                    price: isFree ? 0 : price,
+                    timestamp: Date.now(),
+                    usedCard: isFree
+                });
+                
+                // Update data lokal
+                if (itemId === 'limited_card') {
+                    userItems.limited_card = { purchaseTime: Date.now() };
+                } else {
+                    userItems[itemId] = true;
+                }
+                
+                // Update status card limited
+                checkCardLimitedStatus();
+                
+                // Update UI
+                updateBalanceDisplay();
+                updateBuyButtons();
+                loadInventory();
+                
+                // Tampilkan pesan sukses
+                const itemName = itemId === 'metallic_border' ? 'Border Metalik' : 'Card Limited';
+                let message = `🎉 Berhasil membeli ${itemName}!`;
+                if (isFree) {
+                    message += ' (GRATIS dengan Card Limited)';
+                }
+                showMessage(message, 'success');
+                
+                // Simpan ke localStorage
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+            } catch (error) {
+                console.error('Error buying item:', error);
+                showMessage('Gagal membeli item!', 'error');
+            }
+        }
+        
+        // Load inventory
+        async function loadInventory() {
+            if (!currentUser) return;
+            
+            const inventorySection = document.getElementById('inventorySection');
+            const inventoryItems = document.getElementById('inventoryItems');
+            
+            // Tampilkan section inventory jika user punya item
+            if (Object.keys(userItems).length > 0) {
+                inventorySection.style.display = 'block';
+                
+                let html = '';
+                
+                // Metallic Border
+                if (userItems.metallic_border) {
+                    const isUsing = localStorage.getItem('usingMetallicBorder') === 'true';
+                    
+                    html += `
+                        <div class="inventory-item ${isUsing ? 'using' : ''}">
+                            <div style="font-size: 3em; margin-bottom: 10px;">✨</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Border Metalik</div>
+                            <div style="color: #88ffcc; font-size: 0.9em; margin-bottom: 15px;">
+                                Border khusus leaderboard
+                            </div>
+                            <button class="use-btn ${isUsing ? 'using' : ''}" 
+                                    onclick="toggleMetallicBorder(${!isUsing})">
+                                ${isUsing ? '✅ SEDANG DIGUNAKAN' : '🚀 GUNAKAN'}
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                // Limited Card
+                if (userItems.limited_card) {
+                    const cardData = userItems.limited_card;
+                    const currentTime = Date.now();
+                    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+                    const isActive = (currentTime - cardData.purchaseTime) < fiveDaysInMs;
+                    
+                    let remainingTime = '';
+                    if (isActive) {
+                        const remainingMs = cardData.purchaseTime + fiveDaysInMs - currentTime;
+                        const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+                        remainingTime = `<div style="color: #00ff88; margin-top: 5px;">⏳ ${remainingDays} hari lagi</div>`;
+                    }
+                    
+                    html += `
+                        <div class="inventory-item ${isActive ? 'using' : ''}">
+                            <div style="font-size: 3em; margin-bottom: 10px;">💳</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Card Limited</div>
+                            <div style="color: #88ffcc; font-size: 0.9em; margin-bottom: 15px;">
+                                Akses unlimited ke semua item
+                                ${isActive ? '' : '<div class="expired-badge">KADALUARSA</div>'}
+                                ${remainingTime}
+                            </div>
+                            ${isActive ? 
+                                '<div style="color: #00ff88; font-weight: bold;">⚡ AKTIF</div>' : 
+                                '<button class="use-btn" onclick="buyNewCard()" style="background: #ffd700;">🛒 BELI LAGI</button>'
+                            }
+                        </div>
+                    `;
+                }
+                
+                inventoryItems.innerHTML = html || '<div style="text-align: center; padding: 20px;">Inventory kosong</div>';
+            } else {
+                inventorySection.style.display = 'none';
+            }
+        }
+        
+        // Toggle metallic border usage
+        function toggleMetallicBorder(useBorder) {
+            localStorage.setItem('usingMetallicBorder', useBorder.toString());
+            
+            if (useBorder) {
+                showMessage('✨ Border Metalik diaktifkan! Akan tampil di leaderboard.', 'info');
+            } else {
+                showMessage('Border Metalik dinonaktifkan.', 'info');
+            }
+            
+            loadInventory();
+        }
+        
+        // Beli card baru (untuk yang sudah kadaluarsa)
+        function buyNewCard() {
+            // Langsung panggil fungsi buyItem untuk limited_card
+            buyItem('limited_card', 10000);
+        }
+        
+        // Initialize
+        window.onload = () => {
+            loadCurrentUser();
+            
+            // Real-time listener untuk update diamond
+            if (currentUser && currentUser.uid) {
+                database.ref('users/' + currentUser.uid).on('value', (snapshot) => {
+                    const userData = snapshot.val();
+                    if (userData) {
+                        currentUser = { ...currentUser, ...userData };
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        updateBalanceDisplay();
+                        updateBuyButtons();
+                    }
+                });
+                
+                // Real-time listener untuk update item
+                database.ref('userItems/' + currentUser.uid).on('value', (snapshot) => {
+                    userItems = snapshot.val() || {};
+                    checkCardLimitedStatus();
+                    updateBuyButtons();
+                    loadInventory();
+                });
+            }
+        };
+    </script>
+</body>
+</html>
